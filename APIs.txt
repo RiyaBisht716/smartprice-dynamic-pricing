@@ -1,1 +1,265 @@
-# API Documentation placeholder
+================================================================================
+  SmartPrice — API Documentation
+  AI-Powered Dynamic Pricing System
+  Base URL: http://localhost:5000
+================================================================================
+
+All API endpoints return JSON. Errors always include an "error" key with a
+human-readable message. Currency values are always in USD internally; convert
+on the frontend using the EXCHANGE_RATE constant (default: 1 USD = 83 INR).
+
+
+────────────────────────────────────────────────────────────────────────────────
+  1.  GET  /api/health
+────────────────────────────────────────────────────────────────────────────────
+
+  Description:
+    Health check endpoint. Confirms the server is running and whether the
+    pricing model has been loaded successfully.
+
+  Authentication: None
+  Rate Limit:     None
+
+  ── Response (200 OK) ──────────────────────────────────────────────────────
+
+    {
+      "status":       "ok",
+      "model_loaded": true,
+      "model_name":   "RandomForest"
+    }
+
+  ── Response (model offline) ────────────────────────────────────────────────
+
+    {
+      "status":       "ok",
+      "model_loaded": false,
+      "model_name":   null
+    }
+
+  ── Example cURL ────────────────────────────────────────────────────────────
+
+    curl http://localhost:5000/api/health
+
+
+────────────────────────────────────────────────────────────────────────────────
+  2.  POST  /api/predict
+────────────────────────────────────────────────────────────────────────────────
+
+  Description:
+    Core inference endpoint. Accepts product and market features, runs a
+    vectorized sweep across 500 candidate prices using the trained Random
+    Forest model, and returns the profit-maximizing optimal price along with
+    the full demand/profit/revenue curve for charting.
+
+  Authentication: None
+  Content-Type:   application/json
+  Rate Limit:     Results are LRU-cached (128 slots) for repeated inputs.
+
+  ── Request Body ────────────────────────────────────────────────────────────
+
+    {
+      "cost":             2.50,       // float  — Unit cost of the product (USD)
+      "competitor_price": 3.50,       // float  — Competitor's current price (USD)
+      "temperature":      25.0,       // float  — Ambient temperature in °C
+      "is_weekend":       0,          // int    — 1 if weekend, 0 if weekday
+      "is_festival":      0,          // int    — 1 if festival/holiday, 0 otherwise
+      "promo":            1,          // int    — 1 if promotion active, 0 otherwise
+      "day_of_week":      "Wednesday" // string — Full day name (e.g. "Monday")
+    }
+
+  ── Required Fields ─────────────────────────────────────────────────────────
+
+    Field              Type     Constraints
+    ─────────────────  ───────  ──────────────────────────────
+    cost               float    > 0
+    competitor_price   float    >= 0
+    temperature        float    any value in °C
+    is_weekend         int      0 or 1
+    is_festival        int      0 or 1
+    promo              int      0 or 1
+    day_of_week        string   Monday|Tuesday|Wednesday|
+                                Thursday|Friday|Saturday|Sunday
+
+  ── Response (200 OK) ──────────────────────────────────────────────────────
+
+    {
+      "success":           true,
+      "optimal_price":     3.95,       // float — Profit-maximizing price (USD)
+      "predicted_demand":  42.3,       // float — Estimated units sold at optimal price
+      "expected_profit":   60.43,      // float — (optimal_price - cost) × demand
+      "margin_pct":        58.0,       // float — Profit margin percentage
+      "price_vs_competitor": 12.86,    // float — % above/below competitor price
+      "model_name":        "RandomForest",
+      "model_metrics": {
+        "R2":  0.8402,
+        "MAE": 3.21
+      },
+      "demand_curve": [               // array — ~100 sampled data points for charts
+        {
+          "price":  2.63,             // float — Candidate price (USD)
+          "demand": 68.4,             // float — Predicted demand at this price
+          "profit": 8.71              // float — Profit at this price
+        },
+        ...
+      ]
+    }
+
+  ── Error Responses ─────────────────────────────────────────────────────────
+
+    400 Bad Request      — Missing required field
+    {
+      "error": "Missing field: 'cost'"
+    }
+
+    500 Internal Error   — Model inference failure
+    {
+      "error": "<exception message>"
+    }
+
+    503 Service Unavailable   — Model not loaded
+    {
+      "error": "Model not loaded. Run training first."
+    }
+
+  ── Example cURL ────────────────────────────────────────────────────────────
+
+    curl -X POST http://localhost:5000/api/predict \
+      -H "Content-Type: application/json" \
+      -d '{
+        "cost": 2.50,
+        "competitor_price": 3.50,
+        "temperature": 25.0,
+        "is_weekend": 0,
+        "is_festival": 0,
+        "promo": 1,
+        "day_of_week": "Wednesday"
+      }'
+
+
+────────────────────────────────────────────────────────────────────────────────
+  3.  POST  /api/ab-test
+────────────────────────────────────────────────────────────────────────────────
+
+  Description:
+    Simulates an A/B pricing experiment. Accepts two candidate prices (price_a,
+    price_b) along with market context and returns predicted demand, revenue,
+    and profit for each variant so users can compare strategies.
+
+  Authentication: None
+  Content-Type:   application/json
+
+  ── Request Body ────────────────────────────────────────────────────────────
+
+    {
+      "price_a":          3.50,       // float  — Price variant A (USD)
+      "price_b":          4.25,       // float  — Price variant B (USD)
+      "cost":             2.50,       // float  — Unit cost (USD)
+      "competitor_price": 3.50,       // float  — Competitor price (USD)
+      "temperature":      25.0,       // float  — Temperature (°C)
+      "is_weekend":       0,          // int    — Weekend flag
+      "is_festival":      0,          // int    — Festival flag
+      "promo":            1,          // int    — Promo flag
+      "day_of_week":      "Wednesday" // string — Day of week
+    }
+
+  ── Response (200 OK) ──────────────────────────────────────────────────────
+
+    {
+      "success": true,
+      "price_a": {
+        "price":   3.50,
+        "demand":  55.2,
+        "revenue": 193.2,
+        "profit":  55.2
+      },
+      "price_b": {
+        "price":   4.25,
+        "demand":  38.7,
+        "revenue": 164.5,
+        "profit":  67.5
+      },
+      "winner": "price_b",           // string — Which variant has higher profit
+      "lift_pct": 22.3               // float  — Profit improvement percentage
+    }
+
+  ── Example cURL ────────────────────────────────────────────────────────────
+
+    curl -X POST http://localhost:5000/api/ab-test \
+      -H "Content-Type: application/json" \
+      -d '{
+        "price_a": 3.50,
+        "price_b": 4.25,
+        "cost": 2.50,
+        "competitor_price": 3.50,
+        "temperature": 25,
+        "is_weekend": 0,
+        "is_festival": 0,
+        "promo": 1,
+        "day_of_week": "Wednesday"
+      }'
+
+
+────────────────────────────────────────────────────────────────────────────────
+  4.  GET  /api/insights
+────────────────────────────────────────────────────────────────────────────────
+
+  Description:
+    Returns the feature importances learned by the trained Random Forest model.
+    Used to power the Feature Insights page visualization.
+
+  Authentication: None
+  Rate Limit:     None
+
+  ── Response (200 OK) ──────────────────────────────────────────────────────
+
+    {
+      "features": [
+        { "name": "price",            "importance": 0.312 },
+        { "name": "competitor_price", "importance": 0.198 },
+        { "name": "promo",            "importance": 0.154 },
+        { "name": "temperature",      "importance": 0.101 },
+        { "name": "price_ratio",      "importance": 0.089 },
+        ...
+      ]
+    }
+
+  ── Example cURL ────────────────────────────────────────────────────────────
+
+    curl http://localhost:5000/api/insights
+
+
+────────────────────────────────────────────────────────────────────────────────
+  5.  Page Routes (HTML)
+────────────────────────────────────────────────────────────────────────────────
+
+  Route              Method   Description
+  ─────────────────  ───────  ─────────────────────────────────────────────
+  /                  GET      Main pricing dashboard
+  /elasticity        GET      Price elasticity analysis page
+  /ab-testing        GET      A/B price testing simulator
+  /insights          GET      Feature importance visualization
+  /trends            GET      Historical pricing trends
+  /alerts            GET      Smart price alert configuration
+
+
+────────────────────────────────────────────────────────────────────────────────
+  Notes & Best Practices
+────────────────────────────────────────────────────────────────────────────────
+
+  • All monetary values sent to and received from the API are in USD.
+    Frontend currency conversion (INR ↔ USD) is handled client-side via
+    window.toUSD() and window.fromUSD() in base.html.
+
+  • The /api/predict endpoint uses @functools.lru_cache for memoization.
+    Repeated requests with identical parameters return instantly from cache
+    without invoking the ML model.
+
+  • Response payloads are automatically GZip compressed by Flask-Compress
+    for faster network delivery.
+
+  • In production, run the app with Gunicorn:
+      gunicorn -c gunicorn.conf.py app:app
+
+================================================================================
+  © 2026 Riya Bisht — SmartPrice AI Dynamic Pricing
+================================================================================
