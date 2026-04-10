@@ -17,7 +17,7 @@
 
 <br/>
 
-[🚀 Live Demo](#) · [📖 Documentation](#api-reference) · [🐛 Report Bug](../../issues) · [✨ Request Feature](../../issues)
+[🚀 Live Demo (Live on Render)](https://smartprice-ai-ai-imrn.onrender.com) · [📖 Documentation](#api-reference) · [🐛 Report Bug](../../issues) · [✨ Request Feature](../../issues)
 
 </div>
 
@@ -266,7 +266,7 @@ This project includes a `render.yaml` blueprint for one-click deployment:
 | Metric | Score |
 |---|---|
 | **Algorithm** | Random Forest Regressor |
-| **R² Score** | `0.8402` |
+| **R² Score** | `0.9564` |
 | **MAE** | Evaluated on held-out test set |
 | **Training Features** | 12 engineered features |
 | **Price Candidates** | 500 per inference (vectorized) |
