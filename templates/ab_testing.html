@@ -50,13 +50,13 @@
                 <div class="form-group form-group--full">
                     <label class="form-label" style="color: var(--primary-400);">Shared Market Parameters</label>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Unit Cost (<span class="curr-sym"></span>)</label>
-                    <input class="form-input price-input" type="number" id="cost" value="2.50" step="0.01" required>
+                 <div class="form-group">
+                    <label class="form-label">Unit Cost (<span class="curr-sym">{{ CURR_SYM }}</span>)</label>
+                    <input class="form-input price-input" type="number" id="cost" value="{{ 2.50 | currency_val | replace(',', '') }}" step="0.01" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Competitor (<span class="curr-sym"></span>)</label>
-                    <input class="form-input price-input" type="number" id="competitor_price" value="3.50" step="0.01" required>
+                    <label class="form-label">Competitor (<span class="curr-sym">{{ CURR_SYM }}</span>)</label>
+                    <input class="form-input price-input" type="number" id="competitor_price" value="{{ 3.50 | currency_val | replace(',', '') }}" step="0.01" required>
                 </div>
                 
                 <hr style="grid-column: 1/-1; border: 0; border-top: 1px solid var(--border-subtle); margin: 8px 0;">
@@ -66,12 +66,12 @@
                     <label class="form-label" style="color: #60a5fa;">Variants to Test</label>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Price A (<span class="curr-sym"></span>) - Control</label>
-                    <input class="form-input price-input" type="number" id="price_a" value="3.99" step="0.01" required>
+                    <label class="form-label">Price A (<span class="curr-sym">{{ CURR_SYM }}</span>) - Control</label>
+                    <input class="form-input price-input" type="number" id="price_a" value="{{ 3.99 | currency_val | replace(',', '') }}" step="0.01" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Price B (<span class="curr-sym"></span>) - Treatment</label>
-                    <input class="form-input price-input" type="number" id="price_b" value="4.49" step="0.01" required>
+                    <label class="form-label">Price B (<span class="curr-sym">{{ CURR_SYM }}</span>) - Treatment</label>
+                    <input class="form-input price-input" type="number" id="price_b" value="{{ 4.49 | currency_val | replace(',', '') }}" step="0.01" required>
                 </div>
 
                 <div class="form-group form-group--full" style="margin-top: 16px;">
@@ -94,7 +94,7 @@
                     
                     <div class="variant-metric">
                         <div class="variant-metric-label">Testing Price</div>
-                        <div class="variant-metric-value" style="color: #60a5fa;" id="resPriceA"><span class="curr-sym"></span>0.00</div>
+                        <div class="variant-metric-value" style="color: #60a5fa;" id="resPriceA"><span class="curr-sym">{{ CURR_SYM }}</span>{{ 0.00 | currency_val }}</div>
                     </div>
                     <div class="variant-metric">
                         <div class="variant-metric-label">Simulated Demand</div>
@@ -102,7 +102,7 @@
                     </div>
                     <div class="variant-metric">
                         <div class="variant-metric-label">Expected Profit</div>
-                        <div class="variant-metric-value" style="color: var(--accent-400);" id="resProfitA"><span class="curr-sym"></span>0.00</div>
+                        <div class="variant-metric-value" style="color: var(--accent-400);" id="resProfitA"><span class="curr-sym">{{ CURR_SYM }}</span>{{ 0.00 | currency_val }}</div>
                     </div>
                 </div>
 
@@ -112,7 +112,7 @@
                     
                     <div class="variant-metric">
                         <div class="variant-metric-label">Testing Price</div>
-                        <div class="variant-metric-value" style="color: #60a5fa;" id="resPriceB"><span class="curr-sym"></span>0.00</div>
+                        <div class="variant-metric-value" style="color: #60a5fa;" id="resPriceB"><span class="curr-sym">{{ CURR_SYM }}</span>{{ 0.00 | currency_val }}</div>
                     </div>
                     <div class="variant-metric">
                         <div class="variant-metric-label">Simulated Demand</div>
@@ -120,7 +120,7 @@
                     </div>
                     <div class="variant-metric">
                         <div class="variant-metric-label">Expected Profit</div>
-                        <div class="variant-metric-value" style="color: var(--accent-400);" id="resProfitB"><span class="curr-sym"></span>0.00</div>
+                        <div class="variant-metric-value" style="color: var(--accent-400);" id="resProfitB"><span class="curr-sym">{{ CURR_SYM }}</span>{{ 0.00 | currency_val }}</div>
                     </div>
                 </div>
 

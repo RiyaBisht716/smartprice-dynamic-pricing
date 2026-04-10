@@ -36,6 +36,33 @@ except Exception as e:
     print("  -> Run 'python src/model_training.py' first to train the model.")
 
 
+# ─── Global Currency Context & Filters ───────────────────────────────────────
+EXCHANGE_RATE_INR = 83
+
+@app.context_processor
+def inject_currency():
+    """Inject currency state into all templates on every request."""
+    curr = request.cookies.get('smartprice_currency', 'USD')
+    return {
+        'SELECTED_CURRENCY': curr,
+        'CURR_SYM': '₹' if curr == 'INR' else '$',
+        'CURR_RATE': EXCHANGE_RATE_INR if curr == 'INR' else 1
+    }
+
+@app.template_filter('currency_val')
+def currency_val(value):
+    """
+    Jinja filter to scale a USD-based value to the currently selected currency.
+    Usage: {{ 2.50 | currency_val }}
+    """
+    try:
+        curr = request.cookies.get('smartprice_currency', 'USD')
+        rate = EXCHANGE_RATE_INR if curr == 'INR' else 1
+        return "{:,.2f}".format(float(value) * rate)
+    except (ValueError, TypeError):
+        return value
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 #  Performance & Caching Optimization
 # ═══════════════════════════════════════════════════════════════════════════════

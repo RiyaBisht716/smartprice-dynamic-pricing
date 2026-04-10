@@ -528,8 +528,8 @@
 <script>
     // Global Currency Configuration
     const EXCHANGE_RATE_INR = 83; 
-    let currentCurrency = localStorage.getItem('smartprice_currency') || 'USD';
-    let lastProcessedCurrency = 'USD'; // HTML templates always default to USD from server
+    let currentCurrency = '{{ SELECTED_CURRENCY }}'; 
+    let lastProcessedCurrency = '{{ SELECTED_CURRENCY }}'; 
 
     document.addEventListener('DOMContentLoaded', () => {
         const select = document.getElementById('globalCurrencySelect');
@@ -538,14 +538,25 @@
             select.addEventListener('change', (e) => {
                 const oldCurrency = currentCurrency;
                 currentCurrency = e.target.value;
-                console.log(`[SmartPrice] Currency changed from ${oldCurrency} to ${currentCurrency}`);
+                
+                // Set cookie for server-side persistence (30 days)
+                const d = new Date();
+                d.setTime(d.getTime() + (30*24*60*60*1000));
+                document.cookie = `smartprice_currency=${currentCurrency};expires=${d.toUTCString()};path=/`;
+                
+                // Set localStorage for redundancy
                 localStorage.setItem('smartprice_currency', currentCurrency);
+                
+                console.log(`[SmartPrice] Currency changed to ${currentCurrency}. Cookie set.`);
+                
                 window.dispatchEvent(new CustomEvent('currencyChanged', { 
                     detail: { old: oldCurrency, new: currentCurrency } 
                 }));
             });
         }
-        console.log(`[SmartPrice] Initializing page in ${currentCurrency} mode`);
+        
+        // Sync inputs if there's a mismatch (usually not needed now due to Server-side rendering)
+        console.log(`[SmartPrice] Page loaded in ${currentCurrency} mode (Server-rendered)`);
         syncPriceInputs(currentCurrency);
         updateCurrencyLabels();
     });
@@ -562,17 +573,15 @@
 
     function syncPriceInputs(newCurr) {
         const inputs = document.querySelectorAll('.price-input');
-        console.log(`[SmartPrice] Syncing ${inputs.length} inputs to ${newCurr}. Last processed: ${lastProcessedCurrency}`);
-        
         if (newCurr === lastProcessedCurrency) return;
         
+        console.log(`[SmartPrice] Switching live UI from ${lastProcessedCurrency} to ${newCurr}`);
         inputs.forEach(el => {
             if (el.value) {
-                let val = parseFloat(el.value);
+                let val = parseFloat(el.value.replace(/,/g, ''));
                 if (newCurr === 'INR') val *= EXCHANGE_RATE_INR;
                 else val /= EXCHANGE_RATE_INR;
                 el.value = val.toFixed(2);
-                console.log(`[SmartPrice] Converted input ${el.id} to ${el.value}`);
             }
         });
         lastProcessedCurrency = newCurr;
@@ -584,12 +593,12 @@
 
     // Tools for frontend math assuming backend works internally in USD
     window.toUSD = function(val) {
-        const num = Number(val);
+        const num = typeof val === 'string' ? parseFloat(val.replace(/,/g, '')) : Number(val);
         return currentCurrency === 'INR' ? num / EXCHANGE_RATE_INR : num;
     };
 
     window.fromUSD = function(val) {
-        const num = Number(val);
+        const num = typeof val === 'string' ? parseFloat(val.replace(/,/g, '')) : Number(val);
         return currentCurrency === 'INR' ? num * EXCHANGE_RATE_INR : num;
     };
 
