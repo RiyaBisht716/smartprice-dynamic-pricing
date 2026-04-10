@@ -51,11 +51,11 @@
                     <label class="form-label" style="color: var(--primary-400);">Shared Market Parameters</label>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Unit Cost ($)</label>
+                    <label class="form-label">Unit Cost (<span class="curr-sym"></span>)</label>
                     <input class="form-input" type="number" id="cost" value="2.50" step="0.01" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Competitor ($)</label>
+                    <label class="form-label">Competitor (<span class="curr-sym"></span>)</label>
                     <input class="form-input" type="number" id="competitor_price" value="3.50" step="0.01" required>
                 </div>
                 
@@ -66,11 +66,11 @@
                     <label class="form-label" style="color: #60a5fa;">Variants to Test</label>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Price A ($) - Control</label>
+                    <label class="form-label">Price A (<span class="curr-sym"></span>) - Control</label>
                     <input class="form-input" type="number" id="price_a" value="3.99" step="0.01" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Price B ($) - Treatment</label>
+                    <label class="form-label">Price B (<span class="curr-sym"></span>) - Treatment</label>
                     <input class="form-input" type="number" id="price_b" value="4.49" step="0.01" required>
                 </div>
 
@@ -94,7 +94,7 @@
                     
                     <div class="variant-metric">
                         <div class="variant-metric-label">Testing Price</div>
-                        <div class="variant-metric-value" style="color: #60a5fa;" id="resPriceA">$0.00</div>
+                        <div class="variant-metric-value" style="color: #60a5fa;" id="resPriceA"><span class="curr-sym"></span>0.00</div>
                     </div>
                     <div class="variant-metric">
                         <div class="variant-metric-label">Simulated Demand</div>
@@ -102,7 +102,7 @@
                     </div>
                     <div class="variant-metric">
                         <div class="variant-metric-label">Expected Profit</div>
-                        <div class="variant-metric-value" style="color: var(--accent-400);" id="resProfitA">$0.00</div>
+                        <div class="variant-metric-value" style="color: var(--accent-400);" id="resProfitA"><span class="curr-sym"></span>0.00</div>
                     </div>
                 </div>
 
@@ -112,7 +112,7 @@
                     
                     <div class="variant-metric">
                         <div class="variant-metric-label">Testing Price</div>
-                        <div class="variant-metric-value" style="color: #60a5fa;" id="resPriceB">$0.00</div>
+                        <div class="variant-metric-value" style="color: #60a5fa;" id="resPriceB"><span class="curr-sym"></span>0.00</div>
                     </div>
                     <div class="variant-metric">
                         <div class="variant-metric-label">Simulated Demand</div>
@@ -120,7 +120,7 @@
                     </div>
                     <div class="variant-metric">
                         <div class="variant-metric-label">Expected Profit</div>
-                        <div class="variant-metric-value" style="color: var(--accent-400);" id="resProfitB">$0.00</div>
+                        <div class="variant-metric-value" style="color: var(--accent-400);" id="resProfitB"><span class="curr-sym"></span>0.00</div>
                     </div>
                 </div>
 
@@ -138,15 +138,20 @@
 
 {% block extra_js %}
 <script>
+    // Hook for global currency toggle
+    window.addEventListener('currencyChanged', () => {
+        document.getElementById('abForm').dispatchEvent(new Event('submit'));
+    });
+
     document.getElementById('abForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         
         try {
             const payload = {
-                price_a: document.getElementById('price_a').value,
-                price_b: document.getElementById('price_b').value,
-                cost: document.getElementById('cost').value,
-                competitor_price: document.getElementById('competitor_price').value,
+                price_a: window.toUSD(document.getElementById('price_a').value),
+                price_b: window.toUSD(document.getElementById('price_b').value),
+                cost: window.toUSD(document.getElementById('cost').value),
+                competitor_price: window.toUSD(document.getElementById('competitor_price').value),
                 temperature: 25, is_weekend: 0, is_festival: 0, promo: 0, day_of_week: "Wednesday" // defaults
             };
 
@@ -159,15 +164,15 @@
             
             if (data.error) throw new Error(data.error);
 
-            // Populate A
-            document.getElementById('resPriceA').innerText = `$${data.variant_A.price.toFixed(2)}`;
+            // Populate A 
+            document.getElementById('resPriceA').innerText = `${getCurrencySymbol()}${window.fromUSD(data.variant_A.price).toFixed(2)}`;
             document.getElementById('resDemandA').innerText = `${data.variant_A.demand.toFixed(1)} units`;
-            document.getElementById('resProfitA').innerText = `$${data.variant_A.profit.toFixed(2)}`;
+            document.getElementById('resProfitA').innerText = `${getCurrencySymbol()}${window.fromUSD(data.variant_A.profit).toFixed(2)}`;
             
             // Populate B
-            document.getElementById('resPriceB').innerText = `$${data.variant_B.price.toFixed(2)}`;
+            document.getElementById('resPriceB').innerText = `${getCurrencySymbol()}${window.fromUSD(data.variant_B.price).toFixed(2)}`;
             document.getElementById('resDemandB').innerText = `${data.variant_B.demand.toFixed(1)} units`;
-            document.getElementById('resProfitB').innerText = `$${data.variant_B.profit.toFixed(2)}`;
+            document.getElementById('resProfitB').innerText = `${getCurrencySymbol()}${window.fromUSD(data.variant_B.profit).toFixed(2)}`;
 
             // Reset UI
             document.getElementById('cardA').classList.remove('winner');

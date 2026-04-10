@@ -23,11 +23,11 @@
         <div class="card__body">
             <form id="elasticityForm" class="form-grid">
                 <div class="form-group">
-                    <label class="form-label" for="cost">Unit Cost ($)</label>
+                    <label class="form-label" for="cost">Unit Cost (<span class="curr-sym"></span>)</label>
                     <input class="form-input" type="number" id="cost" value="2.50" step="0.01" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="competitor_price">Competitor ($)</label>
+                    <label class="form-label" for="competitor_price">Competitor (<span class="curr-sym"></span>)</label>
                     <input class="form-input" type="number" id="competitor_price" value="3.50" step="0.01" required>
                 </div>
                 
@@ -62,6 +62,11 @@
 <script>
     let chartInstance = null;
 
+    // Hook for global currency toggle
+    window.addEventListener('currencyChanged', () => {
+        document.getElementById('elasticityForm').dispatchEvent(new Event('submit'));
+    });
+
     document.getElementById('elasticityForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -69,8 +74,8 @@
         overlay.style.opacity = '1';
 
         const payload = {
-            cost: document.getElementById('cost').value,
-            competitor_price: document.getElementById('competitor_price').value,
+            cost: window.toUSD(document.getElementById('cost').value),
+            competitor_price: window.toUSD(document.getElementById('competitor_price').value),
             temperature: 25,
             is_weekend: 0,
             is_festival: 0,
@@ -88,10 +93,17 @@
             
             if (data.error) throw new Error(data.error);
 
+            // Scale API USD data back to local currency
+            data.demand_curve.forEach(d => {
+                d.price = window.fromUSD(d.price);
+            });
+            data.optimal_price = window.fromUSD(data.optimal_price);
+            
             renderElasticityChart(data.demand_curve, data.optimal_price);
             
             document.getElementById('elasticityInsights').style.display = 'block';
-            document.getElementById('elasticText').innerHTML = `Demand drops most sharply when price exceeds <b>$${(payload.competitor_price * 1.1).toFixed(2)}</b> (highly elastic zone). The AI identified <b>$${data.optimal_price.toFixed(2)}</b> as the optimal point before marginal revenue turns negative.`;
+            let localComp = document.getElementById('competitor_price').value;
+            document.getElementById('elasticText').innerHTML = `Demand drops most sharply when price exceeds <b>${getCurrencySymbol()}${(localComp * 1.1).toFixed(2)}</b> (highly elastic zone). The AI identified <b>${getCurrencySymbol()}${data.optimal_price.toFixed(2)}</b> as the optimal point before marginal revenue turns negative.`;
 
         } catch (err) {
             showToast(err.message || 'Failed to connect');
@@ -116,7 +128,7 @@
         chartInstance = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: prices.map(p => '$' + p.toFixed(2)),
+                labels: prices.map(p => getCurrencySymbol() + p.toFixed(2)),
                 datasets: [{
                     label: 'Calculated Demand',
                     data: demands,
@@ -145,7 +157,7 @@
                 },
                 scales: {
                     x: {
-                        title: { display: true, text: 'Price Point ($)', color: '#94a3b8' },
+                        title: { display: true, text: `Price Point (${getCurrencySymbol()})`, color: '#94a3b8' },
                         grid: { color: 'rgba(148, 163, 184, 0.1)' }
                     },
                     y: {
