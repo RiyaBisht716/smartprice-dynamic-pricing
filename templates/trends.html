@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Demand Trends | SmartPrice{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-header__title">Time-Series Trends</h1>
+        <p class="page-header__subtitle">Historical demand analysis and rolling averages.</p>
+    </div>
+</div>
+
+<div class="main-grid">
+    <div class="card" style="grid-column: 1 / -1;">
+        <div class="card__header">
+            <div class="card__header-icon card__header-icon--amber">⏳</div>
+            <div>
+                <h2>30-Day Demand History</h2>
+                <p style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">Volume vs 7-Day Rolling Average</p>
+            </div>
+            
+            <div style="margin-left:auto; display:flex; gap: 8px;">
+                <span style="font-size: 0.8rem; padding: 4px 10px; background: rgba(245, 158, 11, 0.1); border-radius: 4px; color: var(--accent-400);">Simulated Data</span>
+            </div>
+        </div>
+        <div class="card__body" style="height: 400px;">
+            <canvas id="trendsChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Insights Cards -->
+    <div class="card" style="grid-column: auto;">
+        <div class="card__body" style="display: flex; gap: 16px; align-items: flex-start;">
+            <div style="font-size: 2rem; background: rgba(139, 92, 246, 0.1); padding: 12px; border-radius: var(--radius-md);">🗓️</div>
+            <div>
+                <h3 style="color: var(--violet-400); margin-bottom: 4px;">Weekend Spikes</h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                    Historical data indicates a consistent <strong>18-24% increase</strong> in demand volume during Saturday and Sunday.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card" style="grid-column: auto;">
+        <div class="card__body" style="display: flex; gap: 16px; align-items: flex-start;">
+            <div style="font-size: 2rem; background: rgba(249, 115, 22, 0.1); padding: 12px; border-radius: var(--radius-md);">📉</div>
+            <div>
+                <h3 style="color: var(--coral-400); margin-bottom: 4px;">Mid-week Slump</h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                    Tuesdays and Wednesdays show the lowest baseline demand. Consider running targeted promotions on these days.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const ctx = document.getElementById('trendsChart').getContext('2d');
+        
+        // Generate simulated 30-day data
+        const labels = [];
+        const rawDemand = [];
+        
+        let baseDemand = 40;
+        const today = new Date();
+        today.setDate(today.getDate() - 30);
+        
+        for (let i = 0; i < 30; i++) {
+            const d = new Date(today);
+            d.setDate(d.getDate() + i);
+            labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            
+            const dayOfWeek = d.getDay(); // 0 is Sunday, 6 is Saturday
+            
+            // Add weekend spike
+            let daily = baseDemand + (Math.random() * 15 - 5);
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                daily += 25 + (Math.random() * 10);
+            }
+            // mid-week drop
+            if (dayOfWeek === 2 || dayOfWeek === 3) {
+                daily -= 10 + (Math.random() * 5);
+            }
+            
+            rawDemand.push(Math.max(0, parseFloat(daily.toFixed(1))));
+        }
+
+        // Calculate 7-day rolling average
+        const rollingAvg = [];
+        for (let i = 0; i < rawDemand.length; i++) {
+            if (i < 6) {
+                rollingAvg.push(null);
+            } else {
+                let sum = 0;
+                for (let j = 0; j < 7; j++) sum += rawDemand[i - j];
+                rollingAvg.push(parseFloat((sum / 7).toFixed(1)));
+            }
+        }
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
+        gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        type: 'line',
+                        label: '7-Day Rolling Avg',
+                        data: rollingAvg,
+                        borderColor: '#f59e0b',
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        tension: 0.4
+                    },
+                    {
+                        type: 'bar',
+                        label: 'Daily Demand',
+                        data: rawDemand,
+                        backgroundColor: gradient,
+                        borderColor: '#3b82f6',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'top', labels: { color: '#94a3b8' } },
+                    tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.9)' }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#64748b', maxTicksLimit: 15 } },
+                    y: { 
+                        grid: { color: 'rgba(148, 163, 184, 0.1)' }, 
+                        ticks: { color: '#64748b' },
+                        title: { display: true, text: 'Units Sold', color: '#94a3b8' }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

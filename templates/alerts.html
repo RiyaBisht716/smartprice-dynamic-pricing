@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Alerts & Monitoring | SmartPrice{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-header__title">Price Notifications</h1>
+        <p class="page-header__subtitle">Configure alerts for market shifts and competitor pricing.</p>
+    </div>
+</div>
+
+<div class="main-grid">
+    <!-- Config Panel -->
+    <div class="card">
+        <div class="card__header">
+            <div class="card__header-icon card__header-icon--coral">🔔</div>
+            <h2>Configure Alert</h2>
+        </div>
+        <div class="card__body">
+            <form id="alertForm" class="form-grid">
+                <div class="form-group form-group--full">
+                    <label class="form-label">Alert Type</label>
+                    <select class="form-select" id="alert_type">
+                        <option value="competitor_drop">Competitor Drops Price Below Threshold</option>
+                        <option value="margin_compress">Profit Margin Compresses Below Threshold</option>
+                        <option value="demand_spike">Sudden Demand Spike Detected</option>
+                    </select>
+                </div>
+                
+                <div class="form-group form-group--full">
+                    <label class="form-label" id="threshold_label">Price Threshold ($)</label>
+                    <input class="form-input" style="font-size: 1.5rem; font-weight: 700; color: var(--coral-400);" type="number" id="threshold_val" value="2.99" step="0.01" required>
+                </div>
+                
+                <div class="form-group form-group--full" style="display: flex; align-items: center; gap: 10px; margin-top: 8px;">
+                    <input type="checkbox" id="auto_adjust" style="width: 18px; height: 18px; accent-color: var(--primary-500);">
+                    <label for="auto_adjust" style="color: var(--text-secondary); font-size: 0.9rem;">Auto-adjust my price to match competitor</label>
+                </div>
+
+                <div class="form-group form-group--full" style="margin-top: 16px;">
+                    <button type="submit" class="btn-submit" style="background: linear-gradient(135deg, var(--coral-500), #ef4444);">
+                        💾 Save Alert Rule
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Active Alerts / Simulation Panel -->
+    <div class="card">
+        <div class="card__header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="card__header-icon" style="background: rgba(148, 163, 184, 0.1);">📜</div>
+                <h2>Alert History</h2>
+            </div>
+            <button onclick="simulateTrigger()" class="btn-secondary" style="font-size: 0.8rem; padding: 6px 12px;">
+                ⚡ Simulate Trigger
+            </button>
+        </div>
+        <div class="card__body">
+            <div id="alertsContainer" style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- Pre-populated history -->
+                <div style="padding: 16px; background: var(--bg-input); border: 1px solid var(--border-input); border-radius: var(--radius-sm); border-left: 3px solid var(--text-muted);">
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">Yesterday, 2:45 PM</div>
+                    <div style="color: var(--text-primary); font-weight: 500;">Demand Spike Warning</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">Unusual weekend traffic detected (+30%). AI recommended +$0.50 price increase.</div>
+                </div>
+            </div>
+            
+            <div id="emptyAlerts" style="display: none; text-align: center; padding: 40px; color: var(--text-muted);">
+                No recent alerts.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('alert_type').addEventListener('change', (e) => {
+        const lbl = document.getElementById('threshold_label');
+        const inp = document.getElementById('threshold_val');
+        
+        if (e.target.value === 'competitor_drop') {
+            lbl.innerText = 'Price Threshold ($)';
+            inp.value = '2.99';
+            inp.step = '0.01';
+        } else if (e.target.value === 'margin_compress') {
+            lbl.innerText = 'Margin Threshold (%)';
+            inp.value = '20';
+            inp.step = '1';
+        } else {
+            lbl.innerText = 'Demand Increase (%)';
+            inp.value = '50';
+            inp.step = '5';
+        }
+    });
+
+    document.getElementById('alertForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        showToast('Alert rule saved successfully', false);
+    });
+
+    function simulateTrigger() {
+        const type = document.getElementById('alert_type').value;
+        const val = document.getElementById('threshold_val').value;
+        const auto = document.getElementById('auto_adjust').checked;
+        
+        const container = document.getElementById('alertsContainer');
+        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        let title, msg, color;
+        
+        if (type === 'competitor_drop') {
+            title = '⚠️ Competitor Price Drop';
+            msg = `Competitor price dropped below target ${val}.`;
+            if (auto) msg += " <strong>System auto-matched pricing.</strong>";
+            color = 'var(--danger)';
+        } else if (type === 'margin_compress') {
+            title = '📉 Margin Compression';
+            msg = `Expected profit margin fell below ${val}%.`;
+            color = 'var(--accent-500)';
+        } else {
+            title = '🚀 Demand Spike';
+            msg = `Sudden demand volume increase of >${val}% detected.`;
+            color = 'var(--primary-500)';
+        }
+        
+        const card = document.createElement('div');
+        card.style.cssText = `padding: 16px; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-input); border-radius: var(--radius-sm); border-left: 3px solid ${color}; animation: slideUp 0.3s ease-out;`;
+        
+        card.innerHTML = `
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">Today, ${now}</div>
+            <div style="color: ${color}; font-weight: 600;">${title}</div>
+            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">${msg}</div>
+        `;
+        
+        container.insertBefore(card, container.firstChild);
+        
+        // Show desktop toast as well
+        showToast(`New Alert: ${title}`, type === 'competitor_drop');
+    }
+</script>
+{% endblock %}

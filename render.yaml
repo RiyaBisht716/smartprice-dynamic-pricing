@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: dynamic-pricing-saas
+    env: python
+    buildCommand: "pip install -r requirements-prod.txt"
+    startCommand: "gunicorn -c gunicorn.conf.py app:app"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0

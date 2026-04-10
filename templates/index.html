@@ -1,0 +1,968 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | SmartPrice{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Metric Cards */
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    @media (max-width: 600px) {
+        .metrics-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .metric-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: 20px;
+        text-align: center;
+    }
+
+    .metric-card__icon {
+        font-size: 24px;
+        margin-bottom: 8px;
+    }
+
+    .metric-card__value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin-bottom: 2px;
+    }
+
+    .metric-card__value--green {
+        color: var(--primary-400);
+    }
+
+    .metric-card__value--amber {
+        color: var(--accent-400);
+    }
+
+    .metric-card__value--blue {
+        color: #60a5fa;
+    }
+
+    .metric-card__label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+    }
+
+    /* Results layout */
+    .result-hero {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(245, 158, 11, 0.08) 100%);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        border-radius: var(--radius-lg);
+        padding: 32px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+
+    .result-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--primary-500), var(--accent-500));
+    }
+
+    .result-hero__label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--primary-400);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 8px;
+    }
+
+    .result-hero__price {
+        font-size: 3.5rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, var(--primary-300), var(--accent-400));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        line-height: 1.1;
+        margin-bottom: 4px;
+    }
+
+    .result-hero__sub {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+
+    /* Chart */
+    .chart-container {
+        position: relative;
+        height: 320px;
+        padding: 20px 20px 10px;
+    }
+
+    /* Chart Tabs */
+    .chart-tabs {
+        display: flex;
+        gap: 6px;
+        padding: 16px 20px 0;
+    }
+
+    .chart-tab {
+        padding: 6px 14px;
+        border-radius: 100px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        cursor: pointer;
+        border: 1.5px solid var(--border-input);
+        background: transparent;
+        color: var(--text-secondary);
+        font-family: inherit;
+        transition: all 0.2s var(--ease-out);
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+    }
+
+    .chart-tab:hover {
+        border-color: var(--text-muted);
+        color: var(--text-primary);
+    }
+
+    .chart-tab.active.tab--profit {
+        border-color: var(--primary-500);
+        color: var(--primary-400);
+        background: rgba(16, 185, 129, 0.1);
+    }
+
+    .chart-tab.active.tab--demand {
+        border-color: #3b82f6;
+        color: #60a5fa;
+        background: rgba(59, 130, 246, 0.1);
+    }
+
+    .chart-tab.active.tab--revenue {
+        border-color: var(--accent-500);
+        color: var(--accent-400);
+        background: rgba(245, 158, 11, 0.1);
+    }
+
+    .chart-tab.active.tab--all {
+        border-color: var(--violet-400);
+        color: var(--violet-300);
+        background: rgba(139, 92, 246, 0.1);
+    }
+
+    /* Optimal Price Badge */
+    .optimal-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(251, 191, 36, 0.12);
+        border: 1px solid rgba(251, 191, 36, 0.3);
+        border-radius: 100px;
+        padding: 4px 12px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--accent-300);
+        margin-left: auto;
+    }
+
+    /* Revenue Summary Card */
+    .rev-summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        background: var(--border-subtle);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        margin: 0 20px 20px;
+    }
+
+    .rev-summary__item {
+        background: rgba(16, 185, 129, 0.04);
+        padding: 16px;
+        text-align: center;
+    }
+
+    .rev-summary__val {
+        font-size: 1.15rem;
+        font-weight: 800;
+        margin-bottom: 3px;
+    }
+
+    .rev-summary__label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+    }
+
+    /* Insights */
+    .insights-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 0 24px 24px;
+    }
+
+    .insight-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px 14px;
+        background: rgba(16, 185, 129, 0.05);
+        border-radius: var(--radius-sm);
+        border-left: 3px solid var(--primary-500);
+        font-size: 0.88rem;
+        color: var(--text-secondary);
+    }
+
+    .insight-item__icon {
+        flex-shrink: 0;
+        font-size: 16px;
+        margin-top: 2px;
+    }
+
+    /* Toggle Condition Cards (Market Conditions) */
+    .toggle-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+    }
+
+    .toggle-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 14px 8px 12px;
+        background: var(--bg-input);
+        border: 1.5px solid var(--border-input);
+        border-radius: var(--radius-md);
+        color: var(--text-secondary);
+        font-family: inherit;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.25s var(--ease-out);
+        text-align: center;
+    }
+
+    .toggle-btn .toggle-icon {
+        font-size: 22px;
+        line-height: 1;
+    }
+
+    .toggle-btn:hover {
+        border-color: var(--text-muted);
+        color: var(--text-primary);
+        transform: translateY(-1px);
+    }
+
+    .toggle-btn.active.toggle--weekend {
+        background: rgba(139, 92, 246, 0.12);
+        border-color: var(--violet-500);
+        color: var(--violet-400);
+        box-shadow: 0 2px 12px rgba(139, 92, 246, 0.2);
+    }
+
+    .toggle-btn.active.toggle--festival {
+        background: rgba(249, 115, 22, 0.12);
+        border-color: var(--coral-500);
+        color: var(--coral-400);
+        box-shadow: 0 2px 12px rgba(249, 115, 22, 0.2);
+    }
+
+    .toggle-btn.active.toggle--promo {
+        background: rgba(245, 158, 11, 0.12);
+        border-color: var(--accent-500);
+        color: var(--accent-400);
+        box-shadow: 0 2px 12px rgba(245, 158, 11, 0.2);
+    }
+
+    /* Loading */
+    .loading-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.7);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s;
+    }
+
+    .loading-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .loading-spinner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .loading-spinner__ring {
+        width: 48px;
+        height: 48px;
+        border: 3px solid var(--border-subtle);
+        border-top-color: var(--primary-400);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .loading-spinner__text {
+        font-weight: 600;
+        color: var(--primary-300);
+        animation: fadeInOut 1.5s ease-in-out infinite;
+    }
+
+    @keyframes fadeInOut {
+
+        0%,
+        100% {
+            opacity: 0.5;
+        }
+
+        50% {
+            opacity: 1;
+        }
+    }
+
+    /* Empty state */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 400px;
+        text-align: center;
+        padding: 40px;
+    }
+
+    .empty-state__icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: rgba(16, 185, 129, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+        margin-bottom: 20px;
+        animation: float 4s ease-in-out infinite;
+    }
+
+    @keyframes float {
+
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-8px);
+        }
+    }
+
+    .empty-state__title {
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+
+    .empty-state__text {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        max-width: 300px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner">
+        <div class="loading-spinner__ring"></div>
+        <div class="loading-spinner__text">Analyzing pricing model...</div>
+    </div>
+</div>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-header__title">Pricing Dashboard</h1>
+        <p class="page-header__subtitle">Calculate the optimal price to maximize profit considering market conditions.
+        </p>
+    </div>
+</div>
+
+<div class="main-grid">
+
+    <!-- ─── Input Panel ──────────────────────────────────────────────── -->
+    <div class="card">
+        <div class="card__header">
+            <div class="card__header-icon card__header-icon--coral">📋</div>
+            <div>
+                <h2>Product Details</h2>
+                <p style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">Enter your product information
+                    below</p>
+            </div>
+        </div>
+        <div class="card__body">
+            <form id="pricingForm" class="form-grid">
+
+                <div class="form-group">
+                    <label class="form-label" for="cost">Unit Cost (<span class="curr-sym">$</span>)</label>
+                    <input class="form-input" type="number" id="cost" name="cost" step="0.01" min="0.01" value="2.50"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="competitor_price">Competitor (<span class="curr-sym">$</span>)</label>
+                    <input class="form-input" type="number" id="competitor_price" name="competitor_price" step="0.01"
+                        min="0" value="3.50" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="temperature">Temperature (°C)</label>
+                    <input class="form-input" type="number" id="temperature" name="temperature" step="0.1" value="25"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="day_of_week">Day of Week</label>
+                    <select class="form-select" id="day_of_week" name="day_of_week">
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday" selected>Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                        <option value="Saturday">Saturday</option>
+                        <option value="Sunday">Sunday</option>
+                    </select>
+                </div>
+
+                <div class="form-group form-group--full">
+                    <label class="form-label">Market Conditions</label>
+                    <div class="toggle-row">
+                        <button type="button" class="toggle-btn toggle--weekend" id="toggle_weekend"
+                            data-field="is_weekend" onclick="toggleBtn(this)">
+                            <span class="toggle-icon">🗓️</span> Weekend
+                        </button>
+                        <button type="button" class="toggle-btn toggle--festival" id="toggle_festival"
+                            data-field="is_festival" onclick="toggleBtn(this)">
+                            <span class="toggle-icon">🎊</span> Festival
+                        </button>
+                        <button type="button" class="toggle-btn toggle--promo active" id="toggle_promo"
+                            data-field="promo" onclick="toggleBtn(this)">
+                            <span class="toggle-icon">🏷️</span> Promo
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group form-group--full">
+                    <button type="submit" class="btn-submit" id="submitBtn">
+                        🚀 Find Optimal Price
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- ─── Results Panel ────────────────────────────────────────────── -->
+    <div class="results-area" id="resultsArea">
+
+        <!-- Empty state (shown by default) -->
+        <div class="card" id="emptyState">
+            <div class="empty-state">
+                <div class="empty-state__icon">🎯</div>
+                <h2 class="empty-state__title">Ready to Optimize</h2>
+                <p class="empty-state__text">
+                    Fill in your product details and click "Find Optimal Price" to get AI-powered pricing
+                    recommendations.
+                </p>
+            </div>
+        </div>
+
+        <!-- Results (hidden by default) -->
+        <div id="resultsContent" style="display:none;">
+
+            <!-- Hero Price -->
+            <div class="result-hero slide-up" id="heroCard">
+                <div class="result-hero__label">Recommended Price</div>
+                <div class="result-hero__price" id="heroPrice"><span class="curr-sym">$</span>0.00</div>
+                <div class="result-hero__sub" id="heroSub">—</div>
+            </div>
+
+            <!-- Metrics Row -->
+            <div class="metrics-grid">
+                <div class="metric-card slide-up delay-1">
+                    <div class="metric-card__icon">📦</div>
+                    <div class="metric-card__value metric-card__value--green" id="metricDemand">0</div>
+                    <div class="metric-card__label">Predicted Demand</div>
+                </div>
+                <div class="metric-card slide-up delay-2">
+                    <div class="metric-card__icon">💰</div>
+                    <div class="metric-card__value metric-card__value--amber" id="metricProfit">+<span class="curr-sym">$</span>0</div>
+                    <div class="metric-card__label">Expected Profit</div>
+                </div>
+                <div class="metric-card slide-up delay-3">
+                    <div class="metric-card__icon">📊</div>
+                    <div class="metric-card__value metric-card__value--blue" id="metricMargin">0%</div>
+                    <div class="metric-card__label">Profit Margin</div>
+                </div>
+            </div>
+
+            <!-- AI Insights Text -->
+            <div class="card slide-up delay-3" style="margin-bottom: 24px; border-left: 4px solid var(--primary-500);">
+                <div class="card__body" style="padding: 16px 24px;">
+                    <div
+                        style="font-size: 0.85rem; font-weight: 700; color: var(--primary-400); text-transform: uppercase; margin-bottom: 4px;">
+                        ✨ AI Pricing Insight</div>
+                    <p id="dynamicInsightText"
+                        style="color: var(--text-primary); font-size: 0.95rem; line-height: 1.5;"></p>
+                </div>
+            </div>
+
+            <!-- Revenue Optimization Chart -->
+            <div class="card slide-up delay-3" id="revenueChartCard">
+                <div class="card__header" style="flex-wrap:wrap; gap:8px;">
+                    <div class="card__header-icon card__header-icon--amber">💹</div>
+                    <div style="flex:1;">
+                        <h2>Revenue Optimization</h2>
+                        <p style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">Price vs Demand, Revenue
+                            &amp; Profit — ⭐ marks optimal price</p>
+                    </div>
+                    <div class="optimal-badge" id="optimalBadge" style="display:none;">
+                        ⭐ Optimal: <span id="optimalBadgePrice"><span class="curr-sym">$</span>0.00</span>
+                    </div>
+                </div>
+
+                <!-- Tab switcher -->
+                <div class="chart-tabs">
+                    <button class="chart-tab tab--all active" onclick="switchTab('all',this)">All</button>
+                    <button class="chart-tab tab--profit" onclick="switchTab('profit',this)">Profit</button>
+                    <button class="chart-tab tab--revenue" onclick="switchTab('revenue',this)">Revenue</button>
+                    <button class="chart-tab tab--demand" onclick="switchTab('demand',this)">Demand</button>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+
+                <!-- Revenue summary row -->
+                <div class="rev-summary" id="revSummary" style="display:none;">
+                    <div class="rev-summary__item">
+                        <div class="rev-summary__val" id="revSumRevenue" style="color:var(--accent-400);"><span class="curr-sym">$</span>0</div>
+                        <div class="rev-summary__label">Peak Revenue</div>
+                    </div>
+                    <div class="rev-summary__item">
+                        <div class="rev-summary__val" id="revSumProfit" style="color:var(--primary-400);"><span class="curr-sym">$</span>0</div>
+                        <div class="rev-summary__label">Peak Profit</div>
+                    </div>
+                    <div class="rev-summary__item">
+                        <div class="rev-summary__val" id="revSumDemand" style="color:#60a5fa;">0</div>
+                        <div class="rev-summary__label">Peak Demand</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Toggle button logic
+    const state = {
+        is_weekend: 0,
+        is_festival: 0,
+        promo: 1
+    };
+
+    function toggleBtn(btn) {
+        const field = btn.getAttribute('data-field');
+        state[field] = state[field] === 1 ? 0 : 1;
+        btn.classList.toggle('active');
+    }
+
+    // Chart instances
+    let chartInstance = null;
+
+    // Handle form submit
+    document.getElementById('pricingForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const overlay = document.getElementById('loadingOverlay');
+        overlay.classList.add('active');
+
+        try {
+            // Build payload (Convert active currency inputs to USD for backend API)
+            const payload = {
+                cost: window.toUSD(parseFloat(document.getElementById('cost').value)),
+                competitor_price: window.toUSD(parseFloat(document.getElementById('competitor_price').value)),
+                temperature: parseFloat(document.getElementById('temperature').value),
+                day_of_week: document.getElementById('day_of_week').value,
+                ...state
+            };
+
+        console.log("PAYLOAD BUILT:", payload);
+
+        const res = await fetch('/api/predict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        console.log("FETCH RESPONSE:", res);
+
+        if (!res.ok) {
+            let errorMsg = `Server error ${res.status}`;
+            try { 
+                const errData = await res.json(); 
+                if(errData.error) errorMsg = errData.error; 
+            } catch(e) {}
+            throw new Error(errorMsg);
+        }
+        const data = await res.json();
+
+        if (data.error) {
+            showToast(data.error);
+            return;
+        }
+
+        // Convert output from USD back to selected currency
+        data.optimal_price = window.fromUSD(data.optimal_price);
+        data.expected_profit = window.fromUSD(data.expected_profit);
+        data.demand_curve.forEach(d => {
+            d.price = window.fromUSD(d.price);
+            d.profit = window.fromUSD(d.profit);
+        });
+
+        // Populate UI
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('resultsContent').style.display = 'block';
+
+        // Animate numbers
+        animateValue('heroPrice', data.optimal_price, true);
+        animateValue('metricDemand', data.predicted_demand);
+        animateValue('metricProfit', data.expected_profit, true);
+        animateValue('metricMargin', data.margin_pct, false, '%');
+
+        // Set Subtitle
+        const r2Score = data.model_metrics.R2 || data.model_metrics.r2 || 0;
+        document.getElementById('heroSub').innerHTML =
+            `Model: ${data.model_name} &bull; R² = ${r2Score.toFixed(4)}`;
+
+        // Dynamic Insight Text Generator
+        generateInsightText(data, payload);
+
+        // Render Revenue Optimization chart
+        renderRevenueChart(data.demand_curve, data.optimal_price);
+
+    } catch (err) {
+        console.error(err);
+        showToast('Error: ' + err.message);
+    } finally {
+        setTimeout(() => {
+            overlay.classList.remove('active');
+        }, 600); // Artificial delay to show nice loading animation
+    }
+    });
+
+    function generateInsightText(data, inputs) {
+        const compPrice = parseFloat(inputs.competitor_price);
+        const diffPct = data.price_vs_competitor;
+        let insight = "";
+
+        if (diffPct > 50) {
+            insight = `Your optimal price is significantly higher (+${diffPct.toFixed(1)}%) than the competitor due to an inelastic demand profile. High margin expansion is possible.`;
+        } else if (diffPct < -10) {
+            insight = `The model recommends undercutting the competitor price by ${Math.abs(diffPct).toFixed(1)}% to capture highly elastic demand and maximize total profit volume.`;
+        } else if (Math.abs(diffPct) <= 10) {
+            insight = `Demand is stable near market rates. The recommended price effectively matches your competitor while optimizing micro-margins based on your ${data.margin_pct}% profit margin.`;
+        } else {
+            insight = `The recommended price yields a ${data.margin_pct}% margin, balancing competitive positioning with optimal demand realization.`;
+        }
+
+        if (inputs.promo === 1) {
+            insight += " The active promotional campaign heavily drove this volume estimation.";
+        } else if (inputs.is_weekend === 1) {
+            insight += " Weekend traffic patterns contributed slightly to this pricing power.";
+        }
+
+        document.getElementById('dynamicInsightText').textContent = insight;
+    }
+
+    // Number animation
+    function animateValue(id, end, isCurrency = false, suffix = '') {
+        const obj = document.getElementById(id);
+        const duration = 1000;
+        let startTimestamp = null;
+
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+
+            // easeOutQuart
+            const ease = 1 - Math.pow(1 - progress, 4);
+            const current = (end * ease).toFixed(isCurrency ? 2 : 1);
+
+            let prefix = isCurrency ? getCurrencySymbol() : '';
+            if (isCurrency && id === 'metricProfit') prefix = '+' + prefix; // Handle profit +
+
+            obj.innerHTML = prefix + current + suffix;
+
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    // React to currency change -> update the input values naturally
+    window.addEventListener('currencyChanged', (e) => {
+        const costInput = document.getElementById('cost');
+        const compInput = document.getElementById('competitor_price');
+        
+        let multiplier = 1;
+        if (e.detail.old === 'USD' && e.detail.new === 'INR') multiplier = EXCHANGE_RATE_INR;
+        if (e.detail.old === 'INR' && e.detail.new === 'USD') multiplier = 1 / EXCHANGE_RATE_INR;
+
+        if (costInput.value) costInput.value = (parseFloat(costInput.value) * multiplier).toFixed(2);
+        if (compInput.value) compInput.value = (parseFloat(compInput.value) * multiplier).toFixed(2);
+
+        // Update active UI bounds
+        if (document.getElementById('resultsContent').style.display !== 'none') {
+            document.getElementById('submitBtn').click(); // Auto-rerun on currency change
+        }
+    });
+
+    // Run on startup to apply correct default scale if INR is active
+    document.addEventListener('DOMContentLoaded', () => {
+        if (currentCurrency === 'INR') {
+            document.getElementById('cost').value = '207.50';
+            document.getElementById('competitor_price').value = '290.50';
+        }
+    });
+
+    // ── Revenue Optimization Chart ────────────────────────────────────────────
+    let revenueChartInstance = null;
+    let lastCurveData = null;
+    let lastOptimalPrice = null;
+    let lastRawPrices = [];   // kept outside chart.data to avoid Chart.js stripping it
+    let activeTab = 'all';
+
+    // Optimal-price vertical line plugin
+    const optimalLinePlugin = {
+        id: 'optimalLine',
+        afterDraw(chart) {
+            if (!lastOptimalPrice || !lastRawPrices.length) return;
+            // find closest index to optimal price
+            let idx = 0, minDiff = Infinity;
+            lastRawPrices.forEach((p, i) => {
+                const d = Math.abs(p - lastOptimalPrice);
+                if (d < minDiff) { minDiff = d; idx = i; }
+            });
+            const x = chart.scales.x.getPixelForIndex(idx);
+            const { top, bottom } = chart.chartArea;
+            const ctx2 = chart.ctx;
+            ctx2.save();
+            // Glow line
+            ctx2.shadowColor = '#fbbf24';
+            ctx2.shadowBlur = 10;
+            ctx2.beginPath();
+            ctx2.moveTo(x, top);
+            ctx2.lineTo(x, bottom);
+            ctx2.strokeStyle = 'rgba(251,191,36,0.7)';
+            ctx2.lineWidth = 2;
+            ctx2.setLineDash([5, 4]);
+            ctx2.stroke();
+            ctx2.restore();
+            // Star marker
+            ctx2.save();
+            ctx2.font = '16px serif';
+            ctx2.textAlign = 'center';
+            ctx2.fillText('⭐', x, top - 4);
+            ctx2.restore();
+        }
+    };
+    Chart.register(optimalLinePlugin);
+
+    function buildDatasets(tab, prices, demands, revenues, profits, gradProfit, gradRevenue, gradDemand, optIdx) {
+        const pointFn = idx => idx === optIdx ? 8 : 0;
+        const allDatasets = [
+            {
+                label: 'Profit ($)', data: profits,
+                borderColor: '#10b981', backgroundColor: gradProfit,
+                borderWidth: 2.5, tension: 0.4, fill: true,
+                yAxisID: tab === 'all' ? 'y' : 'y',
+                pointRadius: prices.map((_, i) => pointFn(i)),
+                pointBackgroundColor: '#fbbf24', pointBorderColor: '#fff',
+                pointBorderWidth: 2, pointHoverRadius: 10,
+                id: 'profit'
+            },
+            {
+                label: 'Revenue ($)', data: revenues,
+                borderColor: '#f59e0b', backgroundColor: gradRevenue,
+                borderWidth: 2.5, tension: 0.4, fill: true,
+                yAxisID: tab === 'all' ? 'y' : 'y',
+                pointRadius: prices.map((_, i) => pointFn(i)),
+                pointBackgroundColor: '#fbbf24', pointBorderColor: '#fff',
+                pointBorderWidth: 2, pointHoverRadius: 10,
+                id: 'revenue'
+            },
+            {
+                label: 'Demand (units)', data: demands,
+                borderColor: '#3b82f6', backgroundColor: gradDemand,
+                borderWidth: 2.5, tension: 0.4, fill: true,
+                yAxisID: tab === 'all' ? 'y1' : 'y',
+                pointRadius: prices.map((_, i) => pointFn(i)),
+                pointBackgroundColor: '#fbbf24', pointBorderColor: '#fff',
+                pointBorderWidth: 2, pointHoverRadius: 10,
+                id: 'demand'
+            }
+        ];
+        if (tab === 'all') return allDatasets;
+        if (tab === 'profit') return [allDatasets[0]];
+        if (tab === 'revenue') return [allDatasets[1]];
+        if (tab === 'demand') return [allDatasets[2]];
+        return allDatasets;
+    }
+
+    function renderRevenueChart(curveData, optimalPrice) {
+        lastCurveData = curveData;
+        lastOptimalPrice = optimalPrice;
+
+        const ctx = document.getElementById('revenueChart').getContext('2d');
+        if (revenueChartInstance) revenueChartInstance.destroy();
+
+        const prices = curveData.map(d => d.price);
+        const demands = curveData.map(d => d.demand);
+        const revenues = curveData.map(d => Math.round(d.price * d.demand * 100) / 100);
+        const profits = curveData.map(d => d.profit);
+
+        // Find optimal index
+        let optIdx = 0, minDiff = Infinity;
+        prices.forEach((p, i) => { const d = Math.abs(p - optimalPrice); if (d < minDiff) { minDiff = d; optIdx = i; } });
+
+        // Gradients
+        const h = ctx.canvas.height || 320;
+        const gradP = ctx.createLinearGradient(0, 0, 0, h);
+        gradP.addColorStop(0, 'rgba(16,185,129,0.25)');
+        gradP.addColorStop(1, 'rgba(16,185,129,0.02)');
+        const gradR = ctx.createLinearGradient(0, 0, 0, h);
+        gradR.addColorStop(0, 'rgba(245,158,11,0.25)');
+        gradR.addColorStop(1, 'rgba(245,158,11,0.02)');
+        const gradD = ctx.createLinearGradient(0, 0, 0, h);
+        gradD.addColorStop(0, 'rgba(59,130,246,0.25)');
+        gradD.addColorStop(1, 'rgba(59,130,246,0.02)');
+
+        const showDualAxis = (activeTab === 'all');
+
+        lastRawPrices = prices;  // store for the custom plugin
+
+        revenueChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: prices.map(p => getCurrencySymbol() + p.toFixed(2)),
+                datasets: buildDatasets(activeTab, prices, demands, revenues, profits, gradP, gradR, gradD, optIdx)
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 600, easing: 'easeOutQuart' },
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { color: '#94a3b8', font: { family: 'Inter', size: 12, weight: '600' }, boxWidth: 12, padding: 16 }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,23,42,0.95)',
+                        titleColor: '#f1f5f9',
+                        bodyColor: '#cbd5e1',
+                        padding: 14, cornerRadius: 10,
+                        callbacks: {
+                            title(items) { return items.length ? 'Price: ' + getCurrencySymbol() + items[0].raw.price_ref : ''; },
+                            label(item) {
+                                if (item.raw == null) return '';
+                                const val = item.dataset.label.includes('Demand')
+                                    ? Number(item.raw).toFixed(1) + ' units'
+                                    : getCurrencySymbol() + Number(item.raw).toFixed(2);
+                                return ' ' + item.dataset.label.replace(' ($)', '') + ': ' + val;
+                            },
+                            afterBody(items) {
+                                const idx = items[0].dataIndex;
+                                const isOpt = Math.abs(prices[idx] - optimalPrice) < 0.15;
+                                return isOpt ? ['', '⭐ Optimal Price Point'] : [];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(148,163,184,0.08)' },
+                        ticks: { color: '#64748b', maxTicksLimit: 9, font: { size: 11 } }
+                    },
+                    y: {
+                        type: 'linear', position: 'left',
+                        title: { display: true, text: showDualAxis ? `Profit / Revenue (${getCurrencySymbol()})` : (activeTab === 'demand' ? 'Demand (units)' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1) + ` (${getCurrencySymbol()})`), color: '#94a3b8', font: { size: 11 } },
+                        grid: { color: 'rgba(148,163,184,0.08)' },
+                        ticks: { color: '#64748b', font: { size: 11 } }
+                    },
+                    y1: {
+                        type: 'linear', position: 'right', display: showDualAxis,
+                        title: { display: showDualAxis, text: 'Demand (units)', color: '#3b82f6', font: { size: 11 } },
+                        grid: { drawOnChartArea: false },
+                        ticks: { color: '#3b82f6', font: { size: 11 } }
+                    }
+                }
+            }
+        });
+
+        // Update badge + summary
+        const sym = getCurrencySymbol();
+        document.getElementById('optimalBadge').style.display = 'inline-flex';
+        document.getElementById('optimalBadgePrice').textContent = sym + optimalPrice.toFixed(2);
+        document.getElementById('revSummary').style.display = 'grid';
+        document.getElementById('revSumRevenue').textContent = sym + Math.max(...revenues).toFixed(2);
+        document.getElementById('revSumProfit').textContent = sym + Math.max(...profits).toFixed(2);
+        document.getElementById('revSumDemand').textContent = Math.max(...demands).toFixed(1);
+    }
+
+    function switchTab(tab, btn) {
+        activeTab = tab;
+        document.querySelectorAll('.chart-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (lastCurveData) renderRevenueChart(lastCurveData, lastOptimalPrice);
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}A/B Testing Simulator | SmartPrice{% endblock %}
+
+{% block extra_css %}
+<style>
+    .variant-card {
+        padding: 24px;
+        border-radius: var(--radius-md);
+        background: var(--bg-hover);
+        border: 2px solid transparent;
+        transition: all 0.3s var(--ease-out);
+        text-align: center;
+    }
+    .variant-card.winner {
+        border-color: var(--primary-500);
+        background: rgba(16, 185, 129, 0.05);
+        box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15);
+    }
+    .variant-title {
+        font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: var(--text-secondary);
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .variant-card.winner .variant-title { color: var(--primary-400); }
+    .variant-metric { margin-bottom: 16px; }
+    .variant-metric-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .variant-metric-value { font-size: 1.8rem; font-weight: 800; color: var(--text-primary); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-header__title">Experimentation & A/B Tests</h1>
+        <p class="page-header__subtitle">Simulate pricing strategies side-by-side to determine profit impact.</p>
+    </div>
+</div>
+
+<div class="main-grid">
+
+    <!-- Config Panel -->
+    <div class="card">
+        <div class="card__header">
+            <div class="card__header-icon card__header-icon--blue">🧪</div>
+            <h2>Test Configuration</h2>
+        </div>
+        <div class="card__body">
+            <form id="abForm" class="form-grid">
+                <!-- Shared -->
+                <div class="form-group form-group--full">
+                    <label class="form-label" style="color: var(--primary-400);">Shared Market Parameters</label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Unit Cost ($)</label>
+                    <input class="form-input" type="number" id="cost" value="2.50" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Competitor ($)</label>
+                    <input class="form-input" type="number" id="competitor_price" value="3.50" step="0.01" required>
+                </div>
+                
+                <hr style="grid-column: 1/-1; border: 0; border-top: 1px solid var(--border-subtle); margin: 8px 0;">
+
+                <!-- Variants -->
+                <div class="form-group form-group--full">
+                    <label class="form-label" style="color: #60a5fa;">Variants to Test</label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Price A ($) - Control</label>
+                    <input class="form-input" type="number" id="price_a" value="3.99" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Price B ($) - Treatment</label>
+                    <input class="form-input" type="number" id="price_b" value="4.49" step="0.01" required>
+                </div>
+
+                <div class="form-group form-group--full" style="margin-top: 16px;">
+                    <button type="submit" class="btn-submit" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6);">
+                        ▶️ Run Simulation
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results Panel -->
+    <div class="card" id="resultsArea" style="opacity: 0.5; pointer-events: none; transition: 0.3s;">
+        <div class="card__body">
+            <div class="form-grid" style="align-items: stretch; margin-bottom: 24px;">
+                
+                <!-- Variant A -->
+                <div class="variant-card" id="cardA">
+                    <div class="variant-title">Variant A <span id="badgeA" style="display:none; font-size:12px; background:var(--primary-500); color:black; padding:2px 8px; border-radius:100px;">WINNER</span></div>
+                    
+                    <div class="variant-metric">
+                        <div class="variant-metric-label">Testing Price</div>
+                        <div class="variant-metric-value" style="color: #60a5fa;" id="resPriceA">$0.00</div>
+                    </div>
+                    <div class="variant-metric">
+                        <div class="variant-metric-label">Simulated Demand</div>
+                        <div class="variant-metric-value" id="resDemandA">0 units</div>
+                    </div>
+                    <div class="variant-metric">
+                        <div class="variant-metric-label">Expected Profit</div>
+                        <div class="variant-metric-value" style="color: var(--accent-400);" id="resProfitA">$0.00</div>
+                    </div>
+                </div>
+
+                <!-- Variant B -->
+                <div class="variant-card" id="cardB">
+                    <div class="variant-title">Variant B <span id="badgeB" style="display:none; font-size:12px; background:var(--primary-500); color:black; padding:2px 8px; border-radius:100px;">WINNER</span></div>
+                    
+                    <div class="variant-metric">
+                        <div class="variant-metric-label">Testing Price</div>
+                        <div class="variant-metric-value" style="color: #60a5fa;" id="resPriceB">$0.00</div>
+                    </div>
+                    <div class="variant-metric">
+                        <div class="variant-metric-label">Simulated Demand</div>
+                        <div class="variant-metric-value" id="resDemandB">0 units</div>
+                    </div>
+                    <div class="variant-metric">
+                        <div class="variant-metric-label">Expected Profit</div>
+                        <div class="variant-metric-value" style="color: var(--accent-400);" id="resProfitB">$0.00</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div id="conclusionText" style="text-align: center; padding: 16px; border-radius: 8px; font-weight: 500;">
+                Run simulation to see results.
+            </div>
+            
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('abForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        try {
+            const payload = {
+                price_a: document.getElementById('price_a').value,
+                price_b: document.getElementById('price_b').value,
+                cost: document.getElementById('cost').value,
+                competitor_price: document.getElementById('competitor_price').value,
+                temperature: 25, is_weekend: 0, is_festival: 0, promo: 0, day_of_week: "Wednesday" // defaults
+            };
+
+            const res = await fetch('/api/ab-test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            
+            if (data.error) throw new Error(data.error);
+
+            // Populate A
+            document.getElementById('resPriceA').innerText = `$${data.variant_A.price.toFixed(2)}`;
+            document.getElementById('resDemandA').innerText = `${data.variant_A.demand.toFixed(1)} units`;
+            document.getElementById('resProfitA').innerText = `$${data.variant_A.profit.toFixed(2)}`;
+            
+            // Populate B
+            document.getElementById('resPriceB').innerText = `$${data.variant_B.price.toFixed(2)}`;
+            document.getElementById('resDemandB').innerText = `${data.variant_B.demand.toFixed(1)} units`;
+            document.getElementById('resProfitB').innerText = `$${data.variant_B.profit.toFixed(2)}`;
+
+            // Reset UI
+            document.getElementById('cardA').classList.remove('winner');
+            document.getElementById('cardB').classList.remove('winner');
+            document.getElementById('badgeA').style.display = 'none';
+            document.getElementById('badgeB').style.display = 'none';
+
+            // Set Winner UI
+            const conclusion = document.getElementById('conclusionText');
+            if (data.winner === "A") {
+                document.getElementById('cardA').classList.add('winner');
+                document.getElementById('badgeA').style.display = 'inline-block';
+                conclusion.style.background = 'rgba(16, 185, 129, 0.1)';
+                conclusion.style.color = 'var(--primary-400)';
+                conclusion.innerHTML = `Variant A wins by generating <b>+${data.profit_difference_pct.toFixed(1)}%</b> more profit.`;
+            } else if (data.winner === "B") {
+                document.getElementById('cardB').classList.add('winner');
+                document.getElementById('badgeB').style.display = 'inline-block';
+                conclusion.style.background = 'rgba(16, 185, 129, 0.1)';
+                conclusion.style.color = 'var(--primary-400)';
+                conclusion.innerHTML = `Variant B wins by generating <b>+${data.profit_difference_pct.toFixed(1)}%</b> more profit.`;
+            } else {
+                conclusion.style.background = 'rgba(148, 163, 184, 0.1)';
+                conclusion.style.color = 'var(--text-secondary)';
+                conclusion.innerHTML = `It's a Statistical Tie. Both prices generate similar profit profiles.`;
+            }
+
+            document.getElementById('resultsArea').style.opacity = '1';
+            document.getElementById('resultsArea').style.pointerEvents = 'auto';
+
+        } catch (err) {
+            showToast(err.message || 'Simulation failed');
+        }
+    });
+</script>
+{% endblock %}

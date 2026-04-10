@@ -1,0 +1,43 @@
+{
+  "best_model_name": "Random Forest",
+  "metrics": {
+    "RMSE": 45.5247,
+    "MAE": 9.2313,
+    "R2": 0.0376
+  },
+  "all_model_metrics": {
+    "Linear Regression": {
+      "RMSE": 45.9478,
+      "MAE": 9.7606,
+      "R2": 0.0196
+    },
+    "Random Forest": {
+      "RMSE": 45.5247,
+      "MAE": 9.2313,
+      "R2": 0.0376
+    },
+    "XGBoost": {
+      "RMSE": 50.3791,
+      "MAE": 9.6792,
+      "R2": -0.1786
+    }
+  },
+  "feature_names": [
+    "price",
+    "cost",
+    "temperature",
+    "is_weekend",
+    "is_festival",
+    "promo",
+    "competitor_price",
+    "price_ratio",
+    "markup",
+    "price_x_promo",
+    "day_Monday",
+    "day_Sunday",
+    "day_Thursday",
+    "day_Tuesday",
+    "day_Wednesday"
+  ],
+  "trained_at": "2026-04-08 00:29:40"
+}

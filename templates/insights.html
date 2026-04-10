@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Feature Insights | SmartPrice{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-header__title">ML Feature Insights</h1>
+        <p class="page-header__subtitle">Understand the inner workings of the Random Forest pricing model.</p>
+    </div>
+</div>
+
+<div class="main-grid">
+    <!-- Chart Panel -->
+    <div class="card" style="grid-column: 1 / -1;">
+        <div class="card__header">
+            <div class="card__header-icon card__header-icon--teal">🧠</div>
+            <div>
+                <h2>Feature Impact on Demand</h2>
+                <p style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">Relative percentage weight of each feature</p>
+            </div>
+            
+            <button class="btn-secondary" style="margin-left:auto;" onclick="loadInsights()">
+                ↻ Refresh Importances
+            </button>
+        </div>
+        <div class="card__body" style="height: 480px; position: relative;">
+            <canvas id="importanceChart"></canvas>
+            
+            <div id="loadingOverlay" style="position: absolute; inset: 0; background: rgba(30, 41, 59, 0.8); display: flex; align-items: center; justify-content: center; transition: 0.2s;">
+                <div style="color: var(--primary-400); font-weight: 600;">Extracting model weights...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Explanation Panel -->
+    <div class="card" style="grid-column: 1 / -1;">
+        <div class="card__body" style="display: flex; gap: 24px; align-items: center;">
+            <div style="font-size: 3rem; opacity: 0.8;">💡</div>
+            <div>
+                <h3 style="color: var(--primary-400); margin-bottom: 8px;">Explainability (XAI)</h3>
+                <p style="color: var(--text-secondary); max-width: 800px;">
+                    This chart utilizes the Gini Importance (Mean Decrease in Impurity) extracted directly from the deployed Random Forest model. 
+                    It illustrates which real-world factors have the most significant mathematical influence on predicting consumer demand. 
+                    Factors with higher percentages create cleaner structural splits across the ensemble's decision trees.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let chartInstance = null;
+
+    async function loadInsights() {
+        const overlay = document.getElementById('loadingOverlay');
+        overlay.style.opacity = '1';
+        
+        try {
+            const res = await fetch('/api/insights');
+            const data = await res.json();
+            
+            if (data.error) throw new Error(data.error);
+            if (!data.success) throw new Error("Could not extract importances.");
+
+            renderChart(data.importances);
+        } catch (err) {
+            showToast(err.message || 'Failed to load insights');
+        } finally {
+            setTimeout(() => { overlay.style.opacity = '0'; }, 400);
+        }
+    }
+
+    function renderChart(importances) {
+        const ctx = document.getElementById('importanceChart').getContext('2d');
+        if (chartInstance) chartInstance.destroy();
+
+        // Format names nicely
+        const formatName = (str) => {
+            const map = {
+                'cost': 'Unit Cost', 'price': 'Selling Price', 'temperature': 'Temperature',
+                'is_weekend': 'Weekend', 'is_festival': 'Festival', 'promo': 'Promotion Active',
+                'competitor_price': 'Competitor Price', 'price_ratio': 'Price Ratio (vs Comp)',
+                'markup': 'Markup/Profit', 'price_x_promo': 'Price × Promo Interaction',
+                'day_of_week': 'Day of Week'
+            };
+            return map[str] || str;
+        };
+
+        const labels = importances.map(i => formatName(i.feature));
+        const values = importances.map(i => i.importance * 100);
+
+        // Gradient for bars
+        const gradient = ctx.createLinearGradient(0, 0, 800, 0);
+        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.8)');
+        gradient.addColorStop(1, 'rgba(52, 211, 153, 0.8)');
+
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Impact Weight (%)',
+                    data: values,
+                    backgroundColor: gradient,
+                    borderRadius: 4,
+                    barPercentage: 0.6
+                }]
+            },
+            options: {
+                indexAxis: 'y', // horizontal bar chart
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        callbacks: {
+                            label: (ctx) => `${ctx.raw.toFixed(2)}%`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Relative Importance (%)', color: '#94a3b8' },
+                        grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                        max: Math.max(...values) * 1.15
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { color: '#f1f5f9', font: { weight: 600 } }
+                    }
+                }
+            }
+        });
+    }
+
+    // Auto-run on load
+    document.addEventListener('DOMContentLoaded', loadInsights);
+</script>
+{% endblock %}
