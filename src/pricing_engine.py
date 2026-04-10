@@ -119,33 +119,22 @@ class PricingEngine:
     @functools.lru_cache(maxsize=128)
     def recommend_price(self, cost, temperature, is_weekend, is_festival,
                         promo, competitor_price, day_of_week,
-                        min_margin=0.05, max_multiplier=5.0, steps=500):
+                        min_margin=0.05, max_multiplier=2.5, steps=500):
         """
-        Find the price that maximises profit.
-
-        Parameters
-        ----------
-        cost : float — unit cost of the product
-        min_margin : float — minimum markup over cost (5% default)
-        max_multiplier : float — max price = cost × this value
-        steps : int — number of candidate prices to evaluate
-
-        Returns
-        -------
-        dict with keys:
-          optimal_price, predicted_demand, expected_profit,
-          margin_pct, price_vs_competitor,
-          demand_curve (list of {price, demand, profit})
+        Find the price that maximises profit with safety constraints.
         """
         min_price = cost * (1 + min_margin)
-        max_price = max(cost * max_multiplier, competitor_price * 1.5, min_price + 1)
+        
+        # Safety Constraint: Cap the max price to prevent "Greedy AI"
+        # 1. Don't go above 2.5x cost (prevents huge outliers)
+        # 2. Don't go above 1.8x competitor price (stay within market reality)
+        safe_max_mult = min(max_multiplier, 2.5)
+        max_price = max(cost * safe_max_mult, competitor_price * 1.5, min_price + 1)
+        
         candidate_prices = np.linspace(min_price, max_price, steps)
 
         # ─── Vectorized Bulk Inference ────────────────────────────────────
-        # Create a DataFrame initialized to 0 with correct length and columns
         df = pd.DataFrame(0, index=np.arange(len(candidate_prices)), columns=self.feature_names)
-        
-        # Populate fast vectorized columns
         df["price"] = candidate_prices
         df["cost"] = cost
         df["temperature"] = temperature
@@ -154,26 +143,37 @@ class PricingEngine:
         df["promo"] = promo
         df["competitor_price"] = competitor_price
         
-        comp_price = max(competitor_price, 0.0001) # protect divide-by-zero
-        df["price_ratio"] = candidate_prices / comp_price if competitor_price > 0 else 1.0
+        comp_price = max(competitor_price, 0.0001)
+        ratios = candidate_prices / comp_price
+        df["price_ratio"] = ratios if competitor_price > 0 else 1.0
         
         cost_safe = max(cost, 0.0001)
         df["markup"] = (candidate_prices - cost) / cost_safe if cost > 0 else 0.0
-        
         df["price_x_promo"] = candidate_prices * promo
         
         day_col = f"day_{day_of_week}"
         if day_col in df.columns:
             df[day_col] = 1
 
-        # Predict globally using the pipeline
         X_scaled = self.scaler.transform(df)
         demands = self.model.predict(X_scaled)
-        demands = np.maximum(demands, 0)  # No negative demand
+        demands = np.maximum(demands, 0)
 
-        profits = (candidate_prices - cost) * demands
+        # ─── Competitive Penalty Heuristic ───────────────────────────────
+        # Even if the model says demand is high, punish prices that are
+        # way too high compared to the competitor (e.g., > 30% difference)
+        # to ensure the AI stays "realistic".
+        penalties = np.ones_like(ratios)
+        if competitor_price > 0:
+            # Gradually penalize starting at 30% above competitor
+            overprice_mask = ratios > 1.3
+            if np.any(overprice_mask):
+                # Penalty factor: (1.0 - aggressive quadratic decay)
+                penalties[overprice_mask] = np.maximum(0.1, 1.0 - (ratios[overprice_mask] - 1.3) ** 2)
 
-        # Determine optimum directly via numpy
+        profits = (candidate_prices - cost) * demands * penalties
+
+        # Determine optimum
         best_idx = np.argmax(profits)
         best_price = min_price if profits[best_idx] <= 0 else candidate_prices[best_idx]
         best_profit = profits[best_idx]

@@ -1,25 +1,25 @@
 {
-  "best_model_name": "Random Forest",
+  "best_model_name": "XGBoost",
   "metrics": {
-    "RMSE": 45.5247,
-    "MAE": 9.2313,
-    "R2": 0.0376
+    "RMSE": 15.5305,
+    "MAE": 7.3451,
+    "R2": 0.9564
   },
   "all_model_metrics": {
     "Linear Regression": {
-      "RMSE": 45.9478,
-      "MAE": 9.7606,
-      "R2": 0.0196
+      "RMSE": 33.1677,
+      "MAE": 25.0066,
+      "R2": 0.8012
     },
     "Random Forest": {
-      "RMSE": 45.5247,
-      "MAE": 9.2313,
-      "R2": 0.0376
+      "RMSE": 18.1137,
+      "MAE": 7.7406,
+      "R2": 0.9407
     },
     "XGBoost": {
-      "RMSE": 50.3791,
-      "MAE": 9.6792,
-      "R2": -0.1786
+      "RMSE": 15.5305,
+      "MAE": 7.3451,
+      "R2": 0.9564
     }
   },
   "feature_names": [
@@ -34,10 +34,11 @@
     "markup",
     "price_x_promo",
     "day_Monday",
+    "day_Saturday",
     "day_Sunday",
     "day_Thursday",
     "day_Tuesday",
     "day_Wednesday"
   ],
-  "trained_at": "2026-04-08 00:29:40"
+  "trained_at": "2026-04-10 19:00:20"
 }
