@@ -28,7 +28,7 @@
 
 ### Access the Application:
 
-[https://smartprice-ai-imrn.onrender.com][https://smartprice-ai-imrn.onrender.com]
+[https://smartprice-ai-imrn.onrender.com](https://smartprice-ai-imrn.onrender.com)
 
 
 
