@@ -29,7 +29,7 @@
                 </div>
                 
                 <div class="form-group form-group--full">
-                    <label class="form-label" id="threshold_label">Price Threshold ($)</label>
+                    <label class="form-label" id="threshold_label">Price Threshold (<span class="curr-sym"></span>)</label>
                     <input class="form-input" style="font-size: 1.5rem; font-weight: 700; color: var(--coral-400);" type="number" id="threshold_val" value="2.99" step="0.01" required>
                 </div>
                 
@@ -83,7 +83,7 @@
         const inp = document.getElementById('threshold_val');
         
         if (e.target.value === 'competitor_drop') {
-            lbl.innerText = 'Price Threshold ($)';
+            lbl.innerHTML = `Price Threshold (<span class="curr-sym">${getCurrencySymbol()}</span>)`;
             inp.value = '2.99';
             inp.step = '0.01';
         } else if (e.target.value === 'margin_compress') {
@@ -141,5 +141,26 @@
         // Show desktop toast as well
         showToast(`New Alert: ${title}`, type === 'competitor_drop');
     }
+</script>
+<script>
+    // Hook for global currency toggle
+    window.addEventListener('currencyChanged', (e) => {
+        const oldCurr = e.detail.old;
+        const newCurr = e.detail.new;
+        const lbl = document.getElementById('threshold_label');
+        
+        if (lbl.innerHTML.includes('Price Threshold')) {
+            lbl.innerHTML = `Price Threshold (<span class="curr-sym">${getCurrencySymbol()}</span>)`;
+            
+            // Convert the value in the input box if it's a price
+            const inp = document.getElementById('threshold_val');
+            if (inp && inp.value) {
+                let val = parseFloat(inp.value);
+                if (oldCurr === 'USD' && newCurr === 'INR') val *= EXCHANGE_RATE_INR;
+                else if (oldCurr === 'INR' && newCurr === 'USD') val /= EXCHANGE_RATE_INR;
+                inp.value = val.toFixed(2);
+            }
+        }
+    });
 </script>
 {% endblock %}

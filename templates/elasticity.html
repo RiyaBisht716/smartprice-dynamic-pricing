@@ -63,7 +63,21 @@
     let chartInstance = null;
 
     // Hook for global currency toggle
-    window.addEventListener('currencyChanged', () => {
+    window.addEventListener('currencyChanged', (e) => {
+        const oldCurr = e.detail.old;
+        const newCurr = e.detail.new;
+        const inputs = ['cost', 'competitor_price'];
+        
+        inputs.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && el.value) {
+                let val = parseFloat(el.value);
+                if (oldCurr === 'USD' && newCurr === 'INR') val *= EXCHANGE_RATE_INR;
+                else if (oldCurr === 'INR' && newCurr === 'USD') val /= EXCHANGE_RATE_INR;
+                el.value = val.toFixed(2);
+            }
+        });
+
         document.getElementById('elasticityForm').dispatchEvent(new Event('submit'));
     });
 
