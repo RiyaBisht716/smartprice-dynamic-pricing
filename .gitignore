@@ -19,7 +19,7 @@ instance/
 .webassets-cache
 
 # Models (large binary files — regenerate with model_training.py)
-models/*.pkl
+#models/*.pkl
 
 # Environment variables
 .env
