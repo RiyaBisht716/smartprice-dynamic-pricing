@@ -234,6 +234,43 @@
         margin-top: 2px;
     }
 
+    .insight-item--warning {
+        background: rgba(239, 68, 68, 0.08);
+        border-left-color: var(--danger);
+        animation: pulse-border 2s infinite;
+    }
+
+    .insight-item--premium {
+        background: rgba(251, 191, 36, 0.08);
+        border-left-color: var(--accent-500);
+    }
+
+    @keyframes pulse-border {
+        0% { border-left-color: var(--danger); }
+        50% { border-left-color: #fca5a5; }
+        100% { border-left-color: var(--danger); }
+    }
+
+    .price-warning-badge {
+        display: none;
+        background: var(--danger);
+        color: white;
+        font-size: 0.65rem;
+        font-weight: 800;
+        padding: 2px 8px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        margin-top: 6px;
+        letter-spacing: 0.05em;
+        animation: shake 0.5s ease-in-out;
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-2px); }
+        75% { transform: translateX(2px); }
+    }
+
     /* Toggle Condition Cards (Market Conditions) */
     .toggle-row {
         display: grid;
@@ -514,6 +551,7 @@
             <div class="result-hero slide-up" id="heroCard">
                 <div class="result-hero__label">Recommended Price</div>
                 <div class="result-hero__price" id="heroPrice"><span class="curr-sym">{{ CURR_SYM }}</span>{{ 0.00 | currency_val }}</div>
+                <div id="priceWarningBadge" class="price-warning-badge">⚠️ Margin Optimized (High Price)</div>
                 <div class="result-hero__sub" id="heroSub">—</div>
             </div>
 
@@ -536,14 +574,15 @@
                 </div>
             </div>
 
-            <!-- AI Insights Text -->
-            <div class="card slide-up delay-3" style="margin-bottom: 24px; border-left: 4px solid var(--primary-500);">
+            <!-- AI Insights -->
+            <div id="insightsCard" class="card slide-up delay-3" style="margin-bottom: 24px; border-left: 4px solid var(--primary-500); display:none;">
                 <div class="card__body" style="padding: 16px 24px;">
-                    <div
-                        style="font-size: 0.85rem; font-weight: 700; color: var(--primary-400); text-transform: uppercase; margin-bottom: 4px;">
-                        ✨ AI Pricing Insight</div>
-                    <p id="dynamicInsightText"
-                        style="color: var(--text-primary); font-size: 0.95rem; line-height: 1.5;"></p>
+                    <div style="font-size: 0.85rem; font-weight: 700; color: var(--primary-400); text-transform: uppercase; margin-bottom: 12px;">
+                        ✨ AI Pricing Insights
+                    </div>
+                    <div id="insightsContainer" class="insights-list" style="padding:0; gap:10px;">
+                        <!-- Dynamic insights will be injected here -->
+                    </div>
                 </div>
             </div>
 
@@ -706,27 +745,41 @@
     });
 
     function generateInsightText(data, inputs) {
-        const compPrice = parseFloat(inputs.competitor_price);
-        const diffPct = data.price_vs_competitor;
-        let insight = "";
+        const container = document.getElementById('insightsContainer');
+        const card = document.getElementById('insightsCard');
+        const warningBadge = document.getElementById('priceWarningBadge');
+        
+        container.innerHTML = ''; // Clear existing
+        warningBadge.style.display = 'none';
 
-        if (diffPct > 50) {
-            insight = `Your optimal price is significantly higher (+${diffPct.toFixed(1)}%) than the competitor due to an inelastic demand profile. High margin expansion is possible.`;
-        } else if (diffPct < -10) {
-            insight = `The model recommends undercutting the competitor price by ${Math.abs(diffPct).toFixed(1)}% to capture highly elastic demand and maximize total profit volume.`;
-        } else if (Math.abs(diffPct) <= 10) {
-            insight = `Demand is stable near market rates. The recommended price effectively matches your competitor while optimizing micro-margins based on your ${data.margin_pct}% profit margin.`;
-        } else {
-            insight = `The recommended price yields a ${data.margin_pct}% margin, balancing competitive positioning with optimal demand realization.`;
+        // Helper to add an item
+        const addInsight = (text, icon, typeClass = '') => {
+            const div = document.createElement('div');
+            div.className = `insight-item ${typeClass}`;
+            div.innerHTML = `<span class="insight-item__icon">${icon}</span><span>${text}</span>`;
+            container.appendChild(div);
+        };
+
+        // 1. High Price Warning logic
+        // Use the actual input value for comparison to avoid currency mismatches
+        const rawCompPrice = parseFloat(document.getElementById('competitor_price').value);
+        const optPrice = data.optimal_price; // Already in current currency
+
+        if (optPrice > (2 * rawCompPrice)) {
+            warningBadge.style.display = 'inline-block';
+            addInsight("Price significantly higher than competitor. Optimization focused on micro-segment margin capture.", "⚠️", "insight-item--warning");
         }
 
-        if (inputs.promo === 1) {
-            insight += " The active promotional campaign heavily drove this volume estimation.";
-        } else if (inputs.is_weekend === 1) {
-            insight += " Weekend traffic patterns contributed slightly to this pricing power.";
+        // 2. Weekend Insight
+        if (inputs.is_weekend === 1) {
+            addInsight("High Demand Detected (Weekend Boost). Price adjusted to leverage increased shopper traffic.", "🔥");
         }
 
-        document.getElementById('dynamicInsightText').textContent = insight;
+        // 3. Permanent Insight
+        addInsight("Suggested Premium Pricing Strategy: Maximizing revenue via AI-modeled demand elasticity.", "💰", "insight-item--premium");
+
+        // Show insights card if we have any (we always will now due to 3)
+        card.style.display = 'block';
     }
 
     // Number animation
