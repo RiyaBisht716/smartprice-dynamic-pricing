@@ -17,7 +17,7 @@
 
 <br/>
 
-[🚀 Live Demo](https://smartprice-ai-imrn.onrender.com) · [🌐 Live on Render](https://smartprice-ai-imrn.onrender.com) · [📖 Documentation](#api-reference) · [🐛 Report Bug](../../issues) · [✨ Request Feature](../../issues)
+[🚀 Live Demo](https://smartprice-ai-imrn.onrender.com) · [🌐 https://smartprice-ai-imrn.onrender.com](https://smartprice-ai-imrn.onrender.com) · [📖 Documentation](#api-reference) · [🐛 Report Bug](../../issues) · [✨ Request Feature](../../issues)
 
 </div>
 
