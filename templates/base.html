@@ -538,13 +538,14 @@
             select.addEventListener('change', (e) => {
                 const oldCurrency = currentCurrency;
                 currentCurrency = e.target.value;
+                console.log(`[SmartPrice] Currency changed from ${oldCurrency} to ${currentCurrency}`);
                 localStorage.setItem('smartprice_currency', currentCurrency);
                 window.dispatchEvent(new CustomEvent('currencyChanged', { 
                     detail: { old: oldCurrency, new: currentCurrency } 
                 }));
             });
         }
-        // Initial sync for the current page
+        console.log(`[SmartPrice] Initializing page in ${currentCurrency} mode`);
         syncPriceInputs(currentCurrency);
         updateCurrencyLabels();
     });
@@ -560,14 +561,18 @@
     }
 
     function syncPriceInputs(newCurr) {
+        const inputs = document.querySelectorAll('.price-input');
+        console.log(`[SmartPrice] Syncing ${inputs.length} inputs to ${newCurr}. Last processed: ${lastProcessedCurrency}`);
+        
         if (newCurr === lastProcessedCurrency) return;
         
-        document.querySelectorAll('.price-input').forEach(el => {
+        inputs.forEach(el => {
             if (el.value) {
                 let val = parseFloat(el.value);
                 if (newCurr === 'INR') val *= EXCHANGE_RATE_INR;
                 else val /= EXCHANGE_RATE_INR;
                 el.value = val.toFixed(2);
+                console.log(`[SmartPrice] Converted input ${el.id} to ${el.value}`);
             }
         });
         lastProcessedCurrency = newCurr;
