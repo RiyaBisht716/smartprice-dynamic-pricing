@@ -162,5 +162,19 @@
             }
         }
     });
+
+    // Handle initial load conversion
+    document.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('smartprice_currency') === 'INR') {
+            const lbl = document.getElementById('threshold_label');
+            if (lbl.innerHTML.includes('Price Threshold')) {
+                const inp = document.getElementById('threshold_val');
+                if (inp && inp.value && !inp.dataset.synced) {
+                    inp.value = (parseFloat(inp.value) * EXCHANGE_RATE_INR).toFixed(2);
+                    inp.dataset.synced = 'true';
+                }
+            }
+        }
+    });
 </script>
 {% endblock %}

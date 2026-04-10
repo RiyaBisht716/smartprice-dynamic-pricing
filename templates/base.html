@@ -527,8 +527,9 @@
 
 <script>
     // Global Currency Configuration
-    const EXCHANGE_RATE_INR = 83; // For example: 1 USD = 83 INR
-    let currentCurrency = localStorage.getItem('smartprice_currency') || 'INR';
+    const EXCHANGE_RATE_INR = 83; 
+    let currentCurrency = localStorage.getItem('smartprice_currency') || 'USD';
+    let lastProcessedCurrency = 'USD'; // HTML templates always default to USD from server
 
     document.addEventListener('DOMContentLoaded', () => {
         const select = document.getElementById('globalCurrencySelect');
@@ -538,17 +539,38 @@
                 const oldCurrency = currentCurrency;
                 currentCurrency = e.target.value;
                 localStorage.setItem('smartprice_currency', currentCurrency);
-                window.dispatchEvent(new CustomEvent('currencyChanged', { detail: { old: oldCurrency, new: currentCurrency } }));
+                window.dispatchEvent(new CustomEvent('currencyChanged', { 
+                    detail: { old: oldCurrency, new: currentCurrency } 
+                }));
             });
         }
+        // Initial sync for the current page
+        syncPriceInputs(currentCurrency);
         updateCurrencyLabels();
     });
 
-    window.addEventListener('currencyChanged', updateCurrencyLabels);
+    window.addEventListener('currencyChanged', (e) => {
+        syncPriceInputs(e.detail.new);
+        updateCurrencyLabels();
+    });
 
     function updateCurrencyLabels() {
         const sym = getCurrencySymbol();
         document.querySelectorAll('.curr-sym').forEach(el => el.textContent = sym);
+    }
+
+    function syncPriceInputs(newCurr) {
+        if (newCurr === lastProcessedCurrency) return;
+        
+        document.querySelectorAll('.price-input').forEach(el => {
+            if (el.value) {
+                let val = parseFloat(el.value);
+                if (newCurr === 'INR') val *= EXCHANGE_RATE_INR;
+                else val /= EXCHANGE_RATE_INR;
+                el.value = val.toFixed(2);
+            }
+        });
+        lastProcessedCurrency = newCurr;
     }
 
     function getCurrencySymbol() {
