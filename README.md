@@ -17,11 +17,21 @@
 
 <br/>
 
-[🚀 Live Demo](https://smartprice-ai-imrn.onrender.com) · [🌐 Live on Render](https://smartprice-ai-imrn.onrender.com) · [📖 Documentation](#api-reference) · [🐛 Report Bug](../../issues) · [✨ Request Feature](../../issues)
-
 </div>
 
----
+
+
+
+## 🌐 Live Deployment
+
+**🎉 Project is LIVE on Render!**
+
+### Access the Application:
+
+```
+https://smartprice-ai-imrn.onrender.com
+```
+
 
 ## ✨ Features at a Glance
 
